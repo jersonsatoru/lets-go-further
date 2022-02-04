@@ -20,8 +20,15 @@ type config struct {
 }
 
 type application struct {
-	logger *zap.Logger
-	cfg    *config
+	cfg *config
+}
+
+func init() {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatal(err)
+	}
+	zap.ReplaceGlobals(logger)
 }
 
 func main() {
@@ -30,14 +37,8 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development-staging-production)")
 	flag.Parse()
 
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	app := &application{
-		logger: logger,
-		cfg:    &cfg,
+		cfg: &cfg,
 	}
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.port),
@@ -46,7 +47,7 @@ func main() {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 	}
-	logger.Info("server is running", zap.Int("port", cfg.port), zap.String("env", cfg.env))
-	err = srv.ListenAndServe()
-	logger.Fatal("server failed", zap.String("error", err.Error()))
+	zap.L().Info("server is running", zap.Int("port", cfg.port), zap.String("env", cfg.env))
+	err := srv.ListenAndServe()
+	zap.L().Fatal("server failed", zap.String("error", err.Error()))
 }
