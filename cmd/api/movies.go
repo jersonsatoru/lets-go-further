@@ -1,7 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -24,16 +27,22 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		app.notFoundErrorResponse(w, r)
 		return
 	}
-	data := &data.Movie{
-		ID:        1,
-		CreatedAt: time.Now(),
-		Title:     "Independence day",
-		Year:      2002,
-		Runtime:   120,
-		Genres:    []string{"Terror", "Adventure"},
-		Version:   1,
+
+	log.Println("_______________________", int64(id))
+	movie, err := app.models.Movies.Get(int64(id))
+	log.Println(err)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			zap.L().Error("error to decode json data", zap.Int("id", id))
+			app.notFoundErrorResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
 	}
-	err = app.writeJSON(w, http.StatusOK, envelope{"movie": data}, nil)
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -51,7 +60,6 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		app.badRequestResponse(w, r, err)
 		return
 	}
-
 	v := validator.New()
 	movie := &data.Movie{
 		ID:        1,
@@ -62,16 +70,99 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		Version:   1,
 		CreatedAt: time.Now(),
 	}
-
 	if data.ValidateMovie(v, movie); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-
-	env := envelope{
-		"movie": movie,
+	err = app.models.Movies.Insert(movie)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
 	}
-	var header http.Header = http.Header{}
-	header.Add("location", fmt.Sprintf("%s/movies/1", r.Host))
-	app.writeJSON(w, http.StatusCreated, env, header)
+	header := make(http.Header)
+	header.Set("Location", fmt.Sprintf("/v1/movies/%d", movie.ID))
+	err = app.writeJSON(w, http.StatusCreated, envelope{"movie": movie}, header)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
+func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		app.notFoundErrorResponse(w, r)
+		return
+	}
+	movie, err := app.models.Movies.Get(int64(id))
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundErrorResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	input := struct {
+		Title   string       `json:"title"`
+		Year    int32        `json:"year"`
+		Runtime data.Runtime `json:"runtime"`
+		Genres  []string     `json:"genres"`
+	}{}
+	err = json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	movie.Year = input.Year
+	movie.Runtime = input.Runtime
+	movie.Genres = input.Genres
+	movie.Title = input.Title
+	v := validator.New()
+	if data.ValidateMovie(v, movie); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+	err = app.models.Movies.Update(movie)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+}
+
+func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	_, err = app.models.Movies.Get(int64(id))
+	if err != nil {
+		app.notFoundErrorResponse(w, r)
+		return
+	}
+
+	err = app.models.Movies.Delete(int64(id))
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundErrorResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+	err = app.writeJSON(w, http.StatusNoContent, envelope{"message": "movie successfully deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 }
