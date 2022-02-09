@@ -27,6 +27,7 @@ start_pg:
 		--name postgres \
 		-p 5432:5432 \
 		-v pg-data:/var/lib/postgresql/data \
+		-v "${PWD}/init.sql":/docker-entrypoint-initdb.d/init.sql \
 		-e POSTGRES_PASSWORD=satoru \
 		-e POSTGRES_USER=satoru \
 		-e POSTGRES_DATABASE=satoru \

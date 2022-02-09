@@ -37,7 +37,7 @@ func (app *application) serve() error {
 	}()
 
 	err := srv.ListenAndServe()
-	if errors.Is(err, http.ErrServerClosed) {
+	if !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 
