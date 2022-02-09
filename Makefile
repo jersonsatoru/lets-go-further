@@ -4,6 +4,9 @@ DSN=postgres://satoru:satoru@localhost:5432/satoru?sslmode=disable
 DB_MAX_OPEN_CONNS=25
 DB_MAX_IDLE_CONNS=25
 DB_MAX_IDLE_TIME=15m
+LIMITER_RPS=2
+LIMITER_BURST=4
+LIMITER_ENABLED=true
 MIGRATION_NAME=
 
 run:
@@ -13,6 +16,9 @@ run:
 	DB_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS} \
 	DB_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS} \
 	DB_MAX_IDLE_TIME=${DB_MAX_IDLE_TIME} \
+	LIMITER_BURST=${LIMITER_BURST} \
+	LIMITER_ENABLED=${LIMITER_ENABLED} \
+	LIMITER_RPS=${LIMITER_RPS} \
 	go run ./cmd/api/
 start_pg:
 	docker stop postgres || true
