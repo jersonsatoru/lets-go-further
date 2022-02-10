@@ -53,11 +53,11 @@ func (p *password) Matches(plaintextPassword string) (bool, error) {
 }
 
 func ValidateUser(v *validator.Validator, u *User) {
-	v.Check(len(u.Name) > 0, "name", "must be greater than 0")
+	v.Check(u.Name != "", "name", "must be greater than 0")
 	v.Check(len(u.Name) <= 500, "name", "must have the maximum of 500 characters")
 	ValidateEmail(v, u.Email)
 	ValidatePasswordPlaintext(v, *u.Password.plaintext)
-	if u.Password.hash != nil {
+	if u.Password.hash == nil {
 		panic("missing password hash for user")
 	}
 }
@@ -77,7 +77,7 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (m *UserModel) Insert(user User) error {
+func (m *UserModel) Insert(user *User) error {
 	query := `
 		INSERT INTO users (name, email, password_hash, activated)
 		VALUES ($1, $2, $3, $4)
@@ -130,7 +130,7 @@ func (m *UserModel) GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-func (m *UserModel) Update(user User) error {
+func (m *UserModel) Update(user *User) error {
 	query := `
 		UPDATE users
 		SET name = $1, email = $2, activated = $3, password = $4, version = version + 1
