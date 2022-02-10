@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/jersonsatoru/lets-go-further/internal/data"
 	"github.com/jersonsatoru/lets-go-further/internal/validator"
@@ -53,7 +54,15 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	app.wg.Add(1)
 	go func(app *application) {
+		defer app.wg.Done()
+		defer func() {
+			if err := recover(); err != nil {
+				zap.S().Errorw(fmt.Sprintf("%v", err), "Recipient", user.Email)
+			}
+		}()
+		time.Sleep(3 * time.Second)
 		err := app.mailer.Send(user.Email, "user_welcome.tmpl", user)
 		if err != nil {
 			zap.S().Errorw(err.Error(), "Recipient", user.Email)

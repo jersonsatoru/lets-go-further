@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/jersonsatoru/lets-go-further/internal/data"
@@ -46,6 +47,7 @@ type application struct {
 	cfg    *config
 	models data.Models
 	mailer mailer.Mailer
+	wg     sync.WaitGroup
 }
 
 type zapLogger struct {

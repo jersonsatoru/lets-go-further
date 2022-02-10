@@ -33,7 +33,14 @@ func (app *application) serve() error {
 		zap.S().Errorw(fmt.Sprintf("%v", str))
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 		defer cancel()
-		shutdownError <- srv.Shutdown(ctx)
+		err := srv.Shutdown(ctx)
+		if err != nil {
+			shutdownError <- err
+		}
+
+		zap.S().Infow("Completing background jobs")
+		app.wg.Wait()
+		shutdownError <- nil
 	}()
 
 	err := srv.ListenAndServe()
