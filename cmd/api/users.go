@@ -8,6 +8,7 @@ import (
 
 	"github.com/jersonsatoru/lets-go-further/internal/data"
 	"github.com/jersonsatoru/lets-go-further/internal/validator"
+	"go.uber.org/zap"
 )
 
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +52,14 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
+
+	go func(app *application) {
+		err := app.mailer.Send(user.Email, "user_welcome.tmpl", user)
+		if err != nil {
+			zap.S().Errorw(err.Error(), "Recipient", user.Email)
+		}
+	}(app)
+
 	env := envelope{"user": user}
 	b, err := json.Marshal(env)
 	if err != nil {
