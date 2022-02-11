@@ -139,8 +139,8 @@ func (app *application) requiredAuthenticatedUser(next http.Handler) http.Handle
 
 func (app *application) requiredActivatedUser(next http.Handler) http.Handler {
 	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		user, err := r.Context().Value(contextUser("user")).(*data.User)
-		if !err {
+		user, b := r.Context().Value(contextUser("user")).(*data.User)
+		if !b {
 			app.serverErrorResponse(w, r, errors.New("invalid context value"))
 			return
 		}
@@ -148,7 +148,28 @@ func (app *application) requiredActivatedUser(next http.Handler) http.Handler {
 			app.inactiveAccountResponse(w, r)
 			return
 		}
-
+		next.ServeHTTP(w, r)
 	})
 	return app.requiredAuthenticatedUser(fn)
+}
+
+func (app *application) requirePermission(next http.Handler, permission string) http.Handler {
+	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, b := r.Context().Value(contextUser("user")).(*data.User)
+		if !b {
+			app.serverErrorResponse(w, r, errors.New("invalid context value"))
+			return
+		}
+		permissions, err := app.models.Permission.GetAllForUser(user.ID)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+		if !permissions.Include(permission) {
+			app.notPermittedResponse(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+	return app.requiredActivatedUser(fn)
 }
