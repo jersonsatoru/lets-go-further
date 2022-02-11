@@ -18,6 +18,7 @@ func (app *application) routes() *mux.Router {
 	r.Handle("/v1/movies/{id:[0-9]+}", app.rateLimit(http.HandlerFunc(app.showMovieHandler))).Methods(http.MethodGet)
 	r.Handle("/v1/movies/{id:[0-9]+}", app.rateLimit(http.HandlerFunc(app.deleteMovieHandler))).Methods(http.MethodDelete)
 	r.Handle("/v1/users", app.rateLimit(http.HandlerFunc(app.registerUserHandler))).Methods(http.MethodPost)
+	r.Handle("/v1/users/activated", app.rateLimit(http.HandlerFunc(app.activateUserHandler))).Methods(http.MethodPut)
 	r.Use(app.recoverPanic)
 	r.Use(app.rateLimit)
 	return r
