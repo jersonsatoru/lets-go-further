@@ -24,5 +24,6 @@ func (app *application) routes() *mux.Router {
 	r.Handle("/v1/tokens/authentication", app.rateLimit(http.HandlerFunc(app.createAuthenticationTokenHandler))).Methods(http.MethodPost)
 	r.Use(app.recoverPanic)
 	r.Use(app.authenticate)
+	r.Use(app.enableCORS)
 	return r
 }
