@@ -106,7 +106,7 @@ func (m *UserModel) Insert(user *User) error {
 
 func (m *UserModel) GetByEmail(email string) (*User, error) {
 	query := `
-		SELECT id, name, email, activated, version, created
+		SELECT id, name, email, activated, version, created_at, password_hash
 		FROM users
 		WHERE email = $1
 	`
@@ -119,7 +119,8 @@ func (m *UserModel) GetByEmail(email string) (*User, error) {
 		&user.Email,
 		&user.Activated,
 		&user.Version,
-		&user.CreatedAt)
+		&user.CreatedAt,
+		&user.Password.hash)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
