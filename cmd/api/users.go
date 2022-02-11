@@ -53,13 +53,16 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		}
 		return
 	}
-
+	err = app.models.Permission.AddForUser(user.ID, "movies:read")
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 	token, err := app.models.Tokens.New(user.ID, time.Duration(time.Hour*3*24), data.ScopedActivation)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
-
 	app.wg.Add(1)
 	go func(app *application) {
 		defer app.wg.Done()

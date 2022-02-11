@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type Permission struct {
@@ -54,4 +56,25 @@ func (m PermissionModel) GetAllForUser(userID int64) (Permissions, error) {
 		return nil, err
 	}
 	return permissions, nil
+}
+
+func (m PermissionModel) AddForUser(userID int64, permissions ...string) error {
+	query := `
+		INSERT INTO users_permissions 
+		SELECT $1, permissions.id FROM permissions WHERE permissions.code = ANY($2)
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	r, err := m.DB.ExecContext(ctx, query, userID, pq.Array(permissions))
+	if err != nil {
+		return err
+	}
+	rows, err := r.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows <= 0 {
+		return ErrRecordNotFound
+	}
+	return nil
 }
