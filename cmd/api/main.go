@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -40,6 +41,9 @@ type config struct {
 		username string
 		password string
 		sender   string
+	}
+	cors struct {
+		trustedOrigins []string
 	}
 }
 
@@ -76,6 +80,7 @@ func main() {
 	limiterBurst, _ := strconv.Atoi(os.Getenv("LIMITER_BURST"))
 	limiterEnabled, _ := strconv.ParseBool(os.Getenv("LIMITER_ENABLED"))
 	smtpPort, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	corsTrustedOrigins := os.Getenv("CORS_TRUSTED_ORIGINS")
 
 	flag.IntVar(&cfg.port, "port", appPort, "API server port")
 	flag.StringVar(&cfg.env, "env", os.Getenv("APP_ENV"), "Environment (development-staging-production)")
@@ -92,9 +97,11 @@ func main() {
 	flag.StringVar(&cfg.smtp.username, "smtpUsername", os.Getenv("SMTP_USERNAME"), "SMTP Username")
 	flag.StringVar(&cfg.smtp.password, "smtpPassword", os.Getenv("SMTP_PASSWORD"), "SMTP Password")
 	flag.StringVar(&cfg.smtp.sender, "smtpSender", os.Getenv("SMTP_SENDER"), "SMTP Sender")
+	if corsTrustedOrigins != "" {
+		cfg.cors.trustedOrigins = strings.Split(corsTrustedOrigins, " ")
+	}
 
 	flag.Parse()
-
 	db, err := openDB(&cfg)
 	if err != nil {
 		log.Fatal(err)
