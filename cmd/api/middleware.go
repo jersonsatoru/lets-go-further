@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/felixge/httpsnoop"
 	"github.com/jersonsatoru/lets-go-further/internal/data"
 	"github.com/jersonsatoru/lets-go-further/internal/validator"
 	"golang.org/x/time/rate"
@@ -195,5 +197,17 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 			}
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) metrics(next http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		metrics := httpsnoop.CaptureMetrics(next, w, r)
+		app.cfg.metrics.totalRequestReceived.Add(1)
+		next.ServeHTTP(w, r)
+		app.cfg.metrics.totalResponsesSent.Add(1)
+		app.cfg.metrics.totalRequestsTime.Add(metrics.Duration.Microseconds())
+		app.cfg.metrics.totalResponseStatusMap.Add(strconv.Itoa(metrics.Code), 1)
 	})
 }

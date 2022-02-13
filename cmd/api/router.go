@@ -22,8 +22,8 @@ func (app *application) routes() *mux.Router {
 
 	r.Handle("/v1/users", app.rateLimit(http.HandlerFunc(app.registerUserHandler))).Methods(http.MethodPost, http.MethodOptions)
 	r.Handle("/v1/users/activated", app.rateLimit(http.HandlerFunc(app.activateUserHandler))).Methods(http.MethodPut, http.MethodOptions)
-	r.Handle("/v1/tokens/authentication", app.rateLimit(http.HandlerFunc(app.createAuthenticationTokenHandler))).Methods(http.MethodPost, http.MethodOptions)
-	r.Handle("/v1/metrics", expvar.Handler())
+	r.Handle("/v1/tokens/authentication", app.metrics(app.rateLimit(http.HandlerFunc(app.createAuthenticationTokenHandler)))).Methods(http.MethodPost, http.MethodOptions)
+	r.Handle("/v1/metrics", app.metrics(expvar.Handler()))
 	r.Use(app.recoverPanic)
 	r.Use(app.authenticate)
 	r.Use(app.enableCORS)

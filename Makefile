@@ -7,7 +7,7 @@ DB_MAX_IDLE_CONNS=25
 DB_MAX_IDLE_TIME=15m
 LIMITER_RPS=2
 LIMITER_BURST=4
-LIMITER_ENABLED=true
+LIMITER_ENABLED=false
 MIGRATION_NAME=
 SMTP_HOST=smtp.mailtrap.io
 SMTP_PORT=587
@@ -15,7 +15,17 @@ SMTP_USERNAME=1df438ad3e9e01
 SMTP_PASSWORD=9aaa7654c1d251
 SMTP_SENDER="Greenlight <jersonsatoru@yahoo.com.br>"
 
-run:
+## help: print hist help message
+.PHONY: help
+help:
+	@echo 'Usage'
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' | sed -e 's/^/ /'
+.PHONY: confirm
+confirm:
+	@echo -n 'Are you sure? [y/N] ' && read ans && [ $${ans:-N} = y ]
+## run/api: run the cmd/api application
+.PHONY: app/run
+app/run:
 	APP_ENV=${APP_ENV} \
 	APP_PORT=${APP_PORT} \
 	CORS_TRUSTED_ORIGINS=${CORS_TRUSTED_ORIGINS} \
@@ -32,7 +42,9 @@ run:
 	SMTP_SENDER=${SMTP_SENDER} \
 	SMTP_USERNAME=${SMTP_USERNAME} \
 	go run ./cmd/api/
-start_pg:
+## db/start: start pg docker image
+.PHONY: db/start
+db/start:
 	docker stop postgres || true
 	docker rm postgres || true
 	docker run -d \
@@ -44,13 +56,14 @@ start_pg:
 		-e POSTGRES_USER=satoru \
 		-e POSTGRES_DATABASE=satoru \
 		postgres:14.1-alpine3.15
-create_migration: 
-	migrate create 
-		-seq \
-		-ext=.sql \
-		-dir=./migrations \
-		$(MIGRATION_NAME)
-run_migration:
+## db/migration/create name=$1: create a new database migration
+.PHONY: db/migration/create
+db/migration/create: confirm
+	echo ${name}
+	migrate create -seq -ext=.sql -dir=./migrations ${name}
+## db/migration/up: apply all up database migrations
+.PHONY: db/migration/run
+db/migration/run:
 	migrate \
 	 -path=./migrations \
 	 -database="$(DSN)" \

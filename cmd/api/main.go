@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
+	"expvar"
 	"flag"
 	"log"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -45,6 +47,12 @@ type config struct {
 	cors struct {
 		trustedOrigins []string
 	}
+	metrics struct {
+		totalRequestReceived   *expvar.Int
+		totalResponsesSent     *expvar.Int
+		totalRequestsTime      *expvar.Int
+		totalResponseStatusMap *expvar.Map
+	}
 }
 
 type application struct {
@@ -73,6 +81,11 @@ func init() {
 
 func main() {
 	var cfg config
+	cfg.metrics.totalRequestReceived = expvar.NewInt("total_request_received")
+	cfg.metrics.totalRequestsTime = expvar.NewInt("total_request_time")
+	cfg.metrics.totalResponsesSent = expvar.NewInt("total_responses_sent")
+	cfg.metrics.totalResponseStatusMap = expvar.NewMap("total_response_status")
+
 	appPort, _ := strconv.Atoi(os.Getenv("APP_PORT"))
 	maxOpenConns, _ := strconv.Atoi(os.Getenv("DB_MAX_OPEN_CONNS"))
 	maxIdleConns, _ := strconv.Atoi(os.Getenv("DB_MAX_IDLE_CONNS"))
@@ -107,6 +120,17 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
+	expvar.NewString("version").Set(version)
+	expvar.Publish("goroutines", expvar.Func(func() interface{} {
+		return runtime.NumGoroutine()
+	}))
+	expvar.Publish("database", expvar.Func(func() interface{} {
+		return db.Stats()
+	}))
+	expvar.Publish("timestamps", expvar.Func(func() interface{} {
+		return time.Now().Unix()
+	}))
 
 	app := &application{
 		cfg:    &cfg,
