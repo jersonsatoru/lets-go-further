@@ -39,11 +39,9 @@ db/migration/run:
 	 -database="$(DSN)" \
 	 up
 
-.PHONY: audit
-audit:
-	@echo 'Tidying and verifying module dependencies'
-	go mod tidy
-	go mod verify
+## qc/audit: Quality control, execute code formtat, vetting and static check
+.PHONY: qc/audit
+qc/audit: qc/vendor
 	@echo 'Formatting code'
 	go fmt ./...
 	@echo 'Vetting code'
@@ -51,3 +49,12 @@ audit:
 	staticcheck ./...
 	@echo 'Running tests...'
 	go test -race -vet=off ./...
+
+## qc/vendor: vendoring third-party packages (storing locally) and normalizing packages
+.PHONY: qc/vendor
+qc/vendor:
+	@echo 'Tidying and verifying module dependencies'
+	go mod tidy
+	go mod verify
+	@echo 'Vendoring third-party packages'
+	go mod vendor
