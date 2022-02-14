@@ -1,6 +1,7 @@
 include .envrc
 
 current_time := $(shell date --iso-8601=seconds)
+apiVersion := $(shell git describe --always --dirty --tags --long)
 
 ## help: print hist help message
 .PHONY: help
@@ -18,7 +19,7 @@ api/version:
 ## api/build: build api cmd binaries
 api/build:
 	@echo 'Building ./cmd/api'
-	GOOS=linux GOARCH=amd64 go build -ldflags='-s -X main.buildTime=${current_time}' -o=./bin/api ./cmd/api
+	GOOS=linux GOARCH=amd64 go build -ldflags='-s -X main.buildTime=${current_time} -X main.version=${apiVersion}' -o=./bin/api ./cmd/api
 
 ## api/run: run the cmd/api application
 .PHONY: app/run
