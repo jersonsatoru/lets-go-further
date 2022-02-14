@@ -1,5 +1,7 @@
 include .envrc
 
+current_time := $(shell date --iso-8601=seconds)
+
 ## help: print hist help message
 .PHONY: help
 help:
@@ -8,7 +10,17 @@ help:
 .PHONY: confirm
 confirm:
 	@echo -n 'Are you sure? [y/N] ' && read ans && [ $${ans:-N} = y ]
-## run/api: run the cmd/api application
+
+## api/version: display API version
+api/version:
+	./bin/api -version
+
+## api/build: build api cmd binaries
+api/build:
+	@echo 'Building ./cmd/api'
+	GOOS=linux GOARCH=amd64 go build -ldflags='-s -X main.buildTime=${current_time}' -o=./bin/api ./cmd/api
+
+## api/run: run the cmd/api application
 .PHONY: app/run
 api/run:
 	go run ./cmd/api/
@@ -34,11 +46,7 @@ db/migration/create: confirm
 ## db/migration/up: apply all up database migrations
 .PHONY: db/migration/run
 db/migration/run:
-	migrate \
-	 -path=./migrations \
-	 -database="$(DSN)" \
-	 up
-
+	migrate -path=./migrations -database="$(DSN)" up
 ## qc/audit: Quality control, execute code formtat, vetting and static check
 .PHONY: qc/audit
 qc/audit: qc/vendor

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/felixge/httpsnoop"
 	"github.com/jersonsatoru/lets-go-further/internal/data"
 	"github.com/jersonsatoru/lets-go-further/internal/validator"
+	"github.com/tomasen/realip"
 	"golang.org/x/time/rate"
 )
 
@@ -61,11 +61,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	}()
 
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			app.serverErrorResponse(rw, r, err)
-			return
-		}
+		ip := realip.FromRequest(r)
 		mu.Lock()
 		if _, found := clients[ip]; !found {
 			clients[ip] = &client{

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"runtime"
@@ -19,8 +20,9 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	version = "1.0.0"
+var (
+	version   string
+	buildTime string
 )
 
 type config struct {
@@ -113,8 +115,14 @@ func main() {
 	if corsTrustedOrigins != "" {
 		cfg.cors.trustedOrigins = strings.Split(corsTrustedOrigins, " ")
 	}
-
+	displayVersion := flag.Bool("version", false, "Display version and exit")
 	flag.Parse()
+	if *displayVersion {
+		fmt.Printf("Version: %s\n", version)
+		fmt.Printf("Build time: %s", buildTime)
+		os.Exit(0)
+	}
+
 	db, err := openDB(&cfg)
 	if err != nil {
 		log.Fatal(err)
